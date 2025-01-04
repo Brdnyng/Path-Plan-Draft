@@ -8,13 +8,13 @@ import boto3
 from anthropic import Anthropic
 
 
-pool_id = "us-west-2_WIk3nH6HJ"
-app_client_id = "1t6aft7haelaqg723mtruhan3s"
+pool_id = ""
+app_client_id = ""
 
 
 # anthropic 
 anthropic = Anthropic(
-    api_key="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"
+    api_key=""
 )
 anthropic_model_id = "claude-3-5-sonnet-latest"
  

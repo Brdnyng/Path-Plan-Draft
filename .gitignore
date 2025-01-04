@@ -1,0 +1,13 @@
+# Ignore specific files
+secrets.json
+debug.log
+
+# Ignore a specific directory
+ignore_folder/
+
+# Ignore all .log files
+*.log
+
+# Ignore compiled Python files
+app_bk.py
+app.py

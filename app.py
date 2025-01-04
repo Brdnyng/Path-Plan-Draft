@@ -5,20 +5,26 @@ from PyPDF2 import PdfReader
 import json
 import boto3
 from openai import OpenAI
+from anthropic import Anthropic
 
-
-pool_id = st.secrets["COGNITIO_POOL_ID"] 
-app_client_id = st.secrets["COGNITIO_APP_CLIENT_ID"]
+pool_id = "us-west-2_WIk3nH6HJ"
+app_client_id = "1t6aft7haelaqg723mtruhan3s"
 
 # AWS Bedrock LLMs settings
-aws_key = st.secrets.get("AWS_KEY")
-aws_secret = st.secrets.get("AWS_SECRET")
-aws_region = 'us-west-2'
-bedrock_model_id = "anthropic.claude-3-5-sonnet-20240620-v1:0"
+# aws_key = ""
+# aws_secret = ""
+# aws_region = 'us-west-2'
+# bedrock_model_id = "anthropic.claude-3-5-sonnet-20240620-v1:0"
 
 # OpenAI LLMs settings
-openai_key = st.secrets.get("OPEN_AI_KEY")
-openai_model_id = "gpt-4o-mini"
+# openai_key = ""
+# openai_model_id = "gpt-3.5-turbo"
+
+# anthropic 
+anthropic = Anthropic(
+    api_key="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"
+)
+anthropic_model_id = "claude-3-5-sonnet-latest"
  
 # Authenticate user
 if pool_id and app_client_id:
@@ -81,14 +87,19 @@ def call_bedrock(model_id,
         return response.get("output",{}).get("message",{}).get("content",[{}])[0].get("text")
     return None
 
-def call_openai(openai_model_id, messages):
-    openai = OpenAI(api_key=openai_key)
-    chat_completion = openai.chat.completions.create(
-        messages=messages,
-        model=openai_model_id,
+def call_anthopric(model_id, messages): 
+    response = anthropic.messages.create(
+        max_tokens=1024,
+        messages=[
+            {
+                "role": "user",
+                "content": messages,
+            }
+        ],
+        model=model_id,
     )
-    print(chat_completion)
-    return chat_completion
+    # Print response
+    return response
 
 if __name__ == "__main__":
 
@@ -126,12 +137,18 @@ if __name__ == "__main__":
             messages = [{
                             "role": "system",
                             "text": """
-                                You are a school advisor assisting high school students in creating a plan to achieve their goals. 
-                                The student will share their objective—either graduating with a diploma or pursuing college admission, along with their current grade level, most recent standardized test scores or GPA, and a course catalog document provided by their high school. Based on this information, provide three tailored options categorized as:
-                                Safety: A plan that aligns with easily attainable requirements.
-                                Target: A plan that is realistic but requires consistent effort to achieve.
-                                Reach: An ambitious plan requiring significant improvement or exceptional performance.
-                                Include the required GPA and any additional recommendations for each option.
+                                You are a school advisor assisting high school students in creating a 3-4 year course plan to achieve their goals. generate the plan of specific courses in a table format
+                                The student will provide the following information to help construct a 3-4 year course plan:
+
+                                Their current grade level.
+                                The graduation requirements at their school, outlined in the pdf attached(find the key words 'graduation requirements in the pdf'), including the number of credits required in English, math, science, social studies, electives, and physical education.
+                                The subjects they excel in and those they struggle with.
+                                Their interest in taking advanced courses, such as AP, honors, IB, or any acceleration options.
+                                Any special circumstances that should be considered, like learning differences, work commitments, or family obligations.
+                                Specific subjects or extracurricular activities they are passionate about and would like to explore further. Please make these classes, if available, appear on the generated course plan
+
+                                Based on this information, please create a comprehensive, balanced course plan that aligns with the student’s academic and career aspirations, supports their strengths and weaknesses, and incorporates their interests and extracurricular goals.
+                                Finally, calculate a estimated GPA, asssuming that the student averages an A- across 4 years. Keep in mind that accelerated courses such as honors, APs, and IB's grant a 5 instead of a 4 for As.
                                 """
                         },
                         {
@@ -146,17 +163,29 @@ if __name__ == "__main__":
                             "role": "user",
                             "text": f"My recent SAT is {score_sat}"
                         },
-                        {
-                            "role": "user",
-                            "text": f"The school course catalog: {pdf_text}"
-                        }
+                        #{
+                        #    "role": "user",
+                        #    "text": f"The school course catalog: {pdf_text}"
+                        #}
                     ]
 
+
+            anthropic_prompts = f'''
+            You are a school advisor assisting high school students in creating a plan to achieve their goals. 
+                                The student will share their objective—either graduating with a diploma or pursuing college admission, along with their current grade level, most recent standardized test scores or GPA, and a course catalog document provided by their high school. Based on this information, provide three tailored options categorized as:
+                                Safety: A plan that aligns with easily attainable requirements.
+                                Target: A plan that is realistic but requires consistent effort to achieve.
+                                Reach: An ambitious plan requiring significant improvement or exceptional performance.
+                                Include the required GPA and any additional recommendations for each option.
+                                My goal is {goal}
+                                My current grade level is {grade_level}
+                                My recent SAT is {score_sat}
+            '''
             # call bedrock
             with st.spinner('Evaluating...'):
                 #response = call_openai(openai_model_id, messages)
-                response = call_bedrock(bedrock_model_id, messages)
+                #response = call_bedrock(bedrock_model_id, messages)
+                response = call_anthopric(anthropic_model_id,anthropic_prompts)
                 
-                st.write(response)
-
+                st.write(response.content[0].text)
 

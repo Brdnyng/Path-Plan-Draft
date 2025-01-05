@@ -8,13 +8,12 @@ import boto3
 from anthropic import Anthropic
 
 
-pool_id = ""
-app_client_id = ""
-
+pool_id = "us-west-2_WIk3nH6HJ"
+app_client_id = "1t6aft7haelaqg723mtruhan3s"
 
 # anthropic 
 anthropic = Anthropic(
-    api_key=""
+    api_key="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"
 )
 anthropic_model_id = "claude-3-5-sonnet-latest"
  
@@ -106,10 +105,10 @@ if __name__ == "__main__":
     default=[]
     )
 
-    # 3. Special circumstances (learning differences, work commitments, etc.)
-    special_circumstances = st.text_area(
-    "Do you have any special circumstances (learning differences, work commitments, family obligations, etc.) that should be considered when generating your course plan?",
-    placeholder="Please describe any special circumstances here."
+    # 3. credit req
+    credit_requirements = st.text_area(
+    "Does your school have specific graduation credit requirements or a required number of classes per year? If so, please list them.",
+    placeholder="For example: 4 English credits, 3 Math credits, 3 Science credits, 1 PE credit, etc."
     )
 
     # 4. Specific subjects or extracurricular activities they are passionate about (Text Area)
@@ -119,8 +118,15 @@ if __name__ == "__main__":
     )
 
     # Ask if the student has already taken some classes
-    classes_taken = st.text_area("Have you already taken any high school classes? Please list them: (Write 'None' if not applicable.)")
+    math_completed = st.text_area(
+    "What math courses have you already completed, and what is the highest-level math class you’ve taken? This helps determine your next steps in the math sequence.",
+    placeholder="For example: Algebra 1, Geometry, Algebra 2."
+    )
 
+    science_completed = st.text_area(
+    "What science courses have you already completed? This will help ensure your plan follows the correct progression.",
+    placeholder="For example: Biology, Chemistry, Physics."
+    )
 
     #majors = st.multiselect("choose 2 of your interested majors", options=df.columns[1:], default=["None"], max_selections=2)
     #score_sat = st.number_input("Your recent SAT score", placeholder=1200, step=100, min_value=400, max_value=1500)
@@ -142,22 +148,28 @@ if __name__ == "__main__":
             # Send to LLM
 
             anthropic_prompts = f'''
-                                You are a school advisor assisting high school students in creating a 3-4 year course plan to achieve their goals. generate the plan of specific courses in a table format
-                                The student will provide the following information to help construct a 3-4 year course plan:
-                                My goal is {goal}
-                                My upcoming grade level is {grade_level}
-                                The majors I am most interested in are {majors_selected}
-                                The school course catalog: {pdf_text}
-                                The highschool classes that I have already taken, and thus don't include in my plan are:{classes_taken}
-                                The subjects I excel in and would love to take in my course plan are:{subjects_excel}
-                                The subjects I struggle in and would like to take the regular version(for required courses) and not take if it's not required are:{subjects_struggle}
-                                Their current grade level.
-                                The types of advanced courses that I am intersted in are:{advanced_courses}
-                                I have some special circumstances that might impact my course plan:{special_circumstances}
-                                Some subjects and extracurriculars that I am passionate about include:{passionate_about}
-                                
-                                Based on this information, please create a comprehensive, balanced course plan that aligns with the student’s academic and career aspirations, supports their strengths and weaknesses, and incorporates their interests and extracurricular goals.
-                                Finally, calculate a estimated GPA, asssuming that the student averages an A across 4 years. Keep in mind that accelerated courses such as honors, APs, and IB's grant a 5 instead of a 4 for As.
+                                You are a high school academic advisor. Your task is to create a 3-4 year course plan tailored to the student's goals, strengths, and circumstances. Please present the plan in a clear table format.
+
+                                The student provides the following information:
+
+                                Goal: {goal}
+                                Upcoming grade level: {grade_level}
+                                Preferred majors: {majors_selected}
+                                School course catalog: {pdf_text}
+                                Subjects of strength (prioritize these): {subjects_excel}
+                                Subjects of difficulty (regular or omit if not required): {subjects_struggle}
+                                Advanced courses of interest: {advanced_courses}
+                                Passionate subjects/extracurriculars: {passionate_about}
+                                Graduation credit requirements (if not listed in catalog): {credit_requirements}
+                                Math progression details: {math_completed}
+                                Science progression details: {science_completed}
+                                Requirements:
+
+                                Only include courses that exist in the provided course catalog. Verify availability before including.
+                                Determine the correct number of classes per year based on the course catalog or student-provided graduation requirements.
+                                Follow logical progression paths for core subjects, ensuring prerequisites are met.
+                                Create a balanced and realistic plan that aligns with the student's academic goals, strengths, and weaknesses.
+                                Estimate GPA based on an A average, with advanced courses weighted.
             '''
             # call bedrock
             with st.spinner('Evaluating...'):
